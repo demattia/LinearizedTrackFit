@@ -12,7 +12,8 @@ LinearizedTrackFitter::LinearizedTrackFitter(const std::string & baseDir, const 
   combinationIndex_(0),
   baseDir_(baseDir),
   extrapolateR_(false),
-  correctNonRadialStrips_(false)
+  correctNonRadialStrips_(false),
+  rotationFactor_(0.)
 {
   // Read the constants for the full tracker.
   // It needs to read all 9 or 14 regions based on few base names and generate the names for the removed layers.
@@ -87,7 +88,11 @@ void LinearizedTrackFitter::initialize(const std::vector<double> & vars, const s
   varsR_.reserve(varsNum_);
   correctedVarsPhi_ = Matrix<long double, Dynamic, 1>(varsNum_);
   correctedVarsZ_ = Matrix<long double, Dynamic, 1>(varsNum_);
-  for (unsigned int i=0; i<varsNum_; ++i) { correctedVarsPhi_(i) = vars[i*3]; }
+
+  computeRotationFactor(vars);
+
+  // for (unsigned int i=0; i<varsNum_; ++i) { correctedVarsPhi_(i) = vars[i*3]; }
+  for (unsigned int i=0; i<varsNum_; ++i) { correctedVarsPhi_(i) = vars[i*3] - rotationFactor_; }
   for (unsigned int i=0; i<varsNum_; ++i) { varsR_.push_back(vars[i*3+1]); }
   for (unsigned int i=0; i<varsNum_; ++i) { correctedVarsZ_(i) = vars[i*3+2]; }
   extrapolatedR_ = varsR_;
@@ -153,6 +158,8 @@ double LinearizedTrackFitter::fit(const double & chargeOverTwoRho, const double 
   // Estimate the track parameters
   estimatedPars_.clear();
   estimatedPars_ = linearFitTransverse->trackParameters(correctedVarsPhi_);
+  // Parameter 1 must be phi0 for the rotation.
+  if (estimatedPars_.size() > 1) estimatedPars_.at(1) += rotationFactor_;
   auto tempPars = linearFitLongitudinal->trackParameters(correctedVarsZ_);
   estimatedPars_.insert(estimatedPars_.end(), tempPars.begin(), tempPars.end());
 

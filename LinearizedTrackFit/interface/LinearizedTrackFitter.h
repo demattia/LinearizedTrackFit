@@ -28,6 +28,11 @@ class LinearizedTrackFitter
  private:
   void initialize(const std::vector<double> & vars, const std::vector<int> & layers);
   double fit(const double & chargeOverTwoRho, const double & cotTheta, const double & tgTheta);
+  inline void computeRotationFactor(const std::vector<double> & vars)
+  {
+    // Make it so that they are all between -0.4 and 0.4
+    if (vars.size() > 0) rotationFactor_ = int(vars.at(0)/0.4)*0.4;
+  }
 
   std::string preEstimatePtDirName_;
   std::string preEstimateCotThetaDirName_;
@@ -57,7 +62,7 @@ class LinearizedTrackFitter
   CombinationIndexListBuilder combinationIndexListBuilder_;
   bool extrapolateR_;
   bool correctNonRadialStrips_;
-  CorrectPhiForNonRadialStripsLookup correctPhiForNonRadialStripsLookup_;
+  double rotationFactor_;
 
   template <class T>
   void fillMatrices(const std::string & baseDir, const std::string & fileName,
