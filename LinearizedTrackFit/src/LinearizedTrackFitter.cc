@@ -94,8 +94,10 @@ void LinearizedTrackFitter::initialize(const std::vector<double> & vars, const s
   // Special care is needed for the +/-pi boundary
   for (unsigned int i=0; i<varsNum_; ++i) {
     correctedVarsPhi_(i) = vars[i*3] - rotationFactor_;
-    if (vars[0] < 0. && vars[i*3] > 0.) correctedVarsPhi_(i) -= 2*M_PI;
-    else if (vars[0] > 0. && vars[i*3] < 0.) correctedVarsPhi_(i) += 2*M_PI;
+    if (fabs(vars[0]) > M_PI_2) {
+      if (vars[0] < 0. && vars[i * 3] > 0.) correctedVarsPhi_(i) -= 2 * M_PI;
+      else if (vars[0] > 0. && vars[i * 3] < 0.) correctedVarsPhi_(i) += 2 * M_PI;
+    }
   }
   for (unsigned int i=0; i<varsNum_; ++i) { varsR_.push_back(vars[i*3+1]); }
   for (unsigned int i=0; i<varsNum_; ++i) { correctedVarsZ_(i) = vars[i*3+2]; }
