@@ -104,7 +104,7 @@ class LinearizedTrackFitterBase
       }
       catch (int exception) {
         std::cout << "Error: Matrix for combination = " << index << " not found" << std::endl;
-        throw;
+        // throw;
       }
     }
   }
