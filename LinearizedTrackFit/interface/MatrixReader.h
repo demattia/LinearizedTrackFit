@@ -21,8 +21,9 @@ public:
   std::vector<double> principalComponents(const Matrix<long double, Dynamic, 1> & vars) const;
   std::vector<double> normalizedPrincipalComponents(const Matrix<long double, Dynamic, 1> & vars) const;
   int nDof() { return nDof_; }
+  void write() const {}
 
-private:
+protected:
   int nVars_;
   int nTrackParameters_;
   int nDof_;

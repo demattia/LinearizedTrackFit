@@ -14,9 +14,11 @@ class CombinationIndexListBuilder
  public:
   /// Returns the list of combination indexes for the 6/6 and 5/6 of a given combination of 6 layers/disks and radii
   void allCombinationIndexes(const std::vector<int> &layers, const std::vector<double> &radius,
-                             std::vector<unsigned long> &combinationIndexList, const bool fiveOutOfSix);
+                             std::vector<unsigned long> &combinationIndexList, const bool fiveOutOfSix,
+                             const int regionsNumber);
 
-  void fillDefaultIndexList(std::vector<unsigned long> & combinationIndexList, const bool fiveOutOfSix);
+  void fillDefaultIndexList(std::vector<unsigned long> & combinationIndexList, const bool fiveOutOfSix,
+                            const int regionsNumber);
 
  private:
   CombinationsGenerator combinationsGenerator_;

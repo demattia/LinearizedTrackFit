@@ -33,19 +33,6 @@ void initializeVariablesTransformations(const std::vector<std::string> & inputVa
                                         const std::vector<double> & inputMeanRadius, const std::vector<double> & inputMeanZ);
 
 
-//template <class T>
-//void transformVariables(const std::vector<double> & vars, const std::vector<int> & uniqueLayers,
-//                        const T & variablesTransformations, std::vector<double> & transformedVars,
-//                        const double & genChargeOverPt, const double & genCotTheta, const double & genZ0)
-//{
-//  for (size_t i=0; i<vars.size()/3; ++i) {
-//    for (auto v : variablesTransformations) {
-//      transformedVars.push_back((*v)(i, vars, uniqueLayers, genChargeOverPt, genCotTheta, genZ0));
-//    }
-//  }
-//}
-
-
 template <class T>
 void transformVariables(const StubsCombination & stubsCombination,
                         const T & variablesTransformations, std::vector<double> & transformedVars)

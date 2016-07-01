@@ -1,35 +1,29 @@
 #include "LinearizedTrackFit/LinearizedTrackFit/interface/LinearizedTrackFitter.h"
 
 LinearizedTrackFitter::LinearizedTrackFitter(const std::string & baseDir, const bool inputExtrapolateR,
-                                             const bool inputCorrectNonRadialStrips) :
-  preEstimatePtDirName_("PreEstimate_Transverse"),
-  preEstimateCotThetaDirName_("PreEstimate_Longitudinal_Rz"),
-  linearFitLowPtDirName_("Combinations_Transverse_SecondOrder_ExtrapolatedRSecondOrderNonRadialStripCorrectionLookup_2_10"),
-  linearFitHighPtDirName_("Combinations_Transverse_SecondOrder_ExtrapolatedRSecondOrderNonRadialStripCorrectionLookup_10_more"),
-  linearFitLongitudinalDirName_("Combinations_Longitudinal_Rz_SecondOrder"),
-  preEstimatedPt_(0.),
-  ptSplitValue_(10.),
-  combinationIndex_(0),
-  baseDir_(baseDir),
-  extrapolateR_(false),
-  correctNonRadialStrips_(false),
-  rotationFactor_(0.)
+                                             const int inputExtrapolatedRPrecision,
+                                             const bool inputCorrectNonRadialStrips, const int regionsNumber,
+                                             const std::string & preEstimatePtDirName,
+                                             const std::string & preEstimateCotThetaDirName,
+                                             const std::string & linearFitLowPtDirName,
+                                             const std::string & linearFitHighPtDirName,
+                                             const std::string & linearFitLongitudinalDirName) :
+    LinearizedTrackFitterBase(baseDir, inputExtrapolateR, inputExtrapolatedRPrecision,
+                              inputCorrectNonRadialStrips, regionsNumber,
+                              preEstimatePtDirName, preEstimateCotThetaDirName,
+                              linearFitLowPtDirName, linearFitHighPtDirName, linearFitLongitudinalDirName),
+    preEstimatedPt_(0.)
 {
-  // Read the constants for the full tracker.
-  // It needs to read all 9 or 14 regions based on few base names and generate the names for the removed layers.
-
   // Fill all pre-estimates
-  fillMatrices(baseDir_+"/"+preEstimatePtDirName_, "matrixVD_0_pre_chargeOverPt.txt", &chargeOverPtEstimator_);
+  fillMatrices(preEstimatePtDirName_, "matrixVD_0_pre_chargeOverPt.txt", &chargeOverPtEstimator_);
   // R and z are assumed to have the same number of layers. If not the estimator needs to be modified.
-  fillMatrices(baseDir_+"/"+preEstimateCotThetaDirName_, "matrixVD_0_pre_cotTheta.txt", &cotThetaEstimator_);
-  fillMatrices(baseDir_+"/"+preEstimateCotThetaDirName_+"_tgTheta", "matrixVD_0_pre_tgTheta.txt", &tgThetaEstimator_);
+  fillMatrices(preEstimateCotThetaDirName_, "matrixVD_0_pre_cotTheta.txt", &cotThetaEstimator_);
+  fillMatrices(preEstimateCotThetaDirName_, "matrixVD_0_pre_tgTheta.txt", &tgThetaEstimator_);
 
   // Fill all PCA coefficients for parameters and chi2 estimates
-  // std::cout << baseDir_+"/"+linearFitLowPtDirName_ << std::endl;
-  // throw;
-  fillMatrices(baseDir_+"/"+linearFitLowPtDirName_, "matrixVD_0.txt", &linearFitLowPt_);
-  fillMatrices(baseDir_+"/"+linearFitHighPtDirName_, "matrixVD_0.txt", &linearFitHighPt_);
-  fillMatrices(baseDir_+"/"+linearFitLongitudinalDirName_, "matrixVD_0.txt", &linearFitLongitudinal_);
+  fillMatrices(linearFitLowPtDirName_, "matrixVD_0.txt", &linearFitLowPt_);
+  fillMatrices(linearFitHighPtDirName_, "matrixVD_0.txt", &linearFitHighPt_);
+  fillMatrices(linearFitLongitudinalDirName_, "matrixVD_0.txt", &linearFitLongitudinal_);
 }
 
 
@@ -37,7 +31,6 @@ LinearizedTrackFitter::LinearizedTrackFitter(const std::string & baseDir, const 
 double LinearizedTrackFitter::fit(const std::vector<double> & vars, const int bits)
 {
   std::vector<int> layers;
-  // std::cout << "bits = " << bits << std::endl;
   if (bits == 0) layers = {5, 6, 7, 8, 9, 10};
   else if (bits == 1) layers = {6, 7, 8, 9, 10};
   else if (bits == 2) layers = {5, 7, 8, 9, 10};
@@ -54,51 +47,35 @@ double LinearizedTrackFitter::fit(const std::vector<double> & vars, const int bi
   if (bits > 0) {
     std::vector<double> cleanedVars;
     for (size_t i = 0; i < vars.size() / 3; ++i) {
-      if (int(i) != (bits - 1)) {
+      if (i != size_t(bits - 1)) {
         cleanedVars.push_back(vars.at(i * 3));
         cleanedVars.push_back(vars.at(i * 3 + 1));
         cleanedVars.push_back(vars.at(i * 3 + 2));
       }
     }
-    // return fit(cleanedVars, layers, 0., 0.);
     return fit(cleanedVars, layers);
   }
 
-  // return fit(vars, layers, 0., 0.);
   return fit(vars, layers);
 }
 
 
 void LinearizedTrackFitter::initialize(const std::vector<double> & vars, const std::vector<int> & layers)
 {
-  if (vars.size() < 15) {
-    std::cout << "Error: number of input variables is less than 15. Please provide 5 or 6 sets of (phi, R, z) ordered from the innermost to the outermost layer." << std::endl;
-    std::cout << "Number of input variables = " << vars.size() << std::endl;
-    throw;
-  }
-  if (layers.size()*3 != vars.size()) {
-    std::cout << "Error: inconsistent number of layers and number of variables. They should be in a ratio of 1/3." << std::endl;
-    std::cout << "Number of layers = " << layers.size() << std::endl;
-    for (auto l : layers) std::cout << l << ", ";
-    std::cout << std::endl;
-    std::cout << "Number of variables = " << vars.size() << std::endl;
-  }
+//  std::cout << "vars =" << std::endl;
+//  for (auto it : vars) std::cout << it << std::endl;
+
+  consistencyCheck(vars, layers);
   varsNum_ = vars.size()/3;
   varsR_.clear();
   varsR_.reserve(varsNum_);
   correctedVarsPhi_ = Matrix<long double, Dynamic, 1>(varsNum_);
   correctedVarsZ_ = Matrix<long double, Dynamic, 1>(varsNum_);
 
-  computeRotationFactor(vars);
+  // Compute the phi alignment value
+  rotationFactor_ = computeRotationFactor(vars);
 
-  // Special care is needed for the +/-pi boundary
-  for (unsigned int i=0; i<varsNum_; ++i) {
-    correctedVarsPhi_(i) = vars[i*3] - rotationFactor_;
-    if (fabs(vars[0]) > M_PI_2) {
-      if (vars[0] < 0. && vars[i * 3] > 0.) correctedVarsPhi_(i) -= 2 * M_PI;
-      else if (vars[0] > 0. && vars[i * 3] < 0.) correctedVarsPhi_(i) += 2 * M_PI;
-    }
-  }
+  for (unsigned int i=0; i<varsNum_; ++i) { correctedVarsPhi_(i) = vars[i*3] - rotationFactor_; }
   for (unsigned int i=0; i<varsNum_; ++i) { varsR_.push_back(vars[i*3+1]); }
   for (unsigned int i=0; i<varsNum_; ++i) { correctedVarsZ_(i) = vars[i*3+2]; }
   extrapolatedR_ = varsR_;
@@ -106,7 +83,7 @@ void LinearizedTrackFitter::initialize(const std::vector<double> & vars, const s
   uniqueLayers_ = layers;
   std::sort(uniqueLayers_.begin(), uniqueLayers_.end());
   uniqueLayers_.erase(std::unique(uniqueLayers_.begin(), uniqueLayers_.end()), uniqueLayers_.end());
-  combinationIndex_ = combinationIndex(uniqueLayers_, varsR_);
+  combinationIndex_ = combinationIndex(uniqueLayers_, varsR_, regionsNumber_);
 }
 
 
@@ -119,7 +96,7 @@ double LinearizedTrackFitter::fit(const std::vector<double> & vars, const std::v
     return -1.;
   }
 
-  if (!readMean(baseDir_+"/"+preEstimateCotThetaDirName_, "MeanRadius_", combinationIndex_, meanRadius_)) {
+  if (!readMean(preEstimateCotThetaDirName_, "MeanRadius_", combinationIndex_, meanRadius_)) {
     std::cout << "Error: mean radii not found for combination = " << combinationIndex_ << std::endl;
     throw;
   }
@@ -135,7 +112,17 @@ double LinearizedTrackFitter::fit(const std::vector<double> & vars, const std::v
   double chargeOverTwoRho = (3.8114*0.003)*preEstimatedChargeOverPt/2.;
   double cotTheta = cotThetaEstimator.estimate(varsR_, correctedVarsZ_);
 
-  return fit(chargeOverTwoRho, cotTheta, 0.);
+  // Extrapolate R if required
+  // Warning: do not put in the following loop or the correctedVarsZ will be modified for all the elements after the
+  // first one and the results will be incorrect.
+  double tgTheta = 0.;
+  if (extrapolateR_) {
+    auto iterTgTheta = tgThetaEstimator_.find(combinationIndex_);
+    EstimatorSimple &tgThetaEstimator = iterTgTheta->second;
+    tgTheta = tgThetaEstimator.estimate(varsR_, correctedVarsZ_);
+  }
+
+  return fit(chargeOverTwoRho, cotTheta, tgTheta);
 }
 
 
@@ -154,26 +141,23 @@ double LinearizedTrackFitter::fit(const double & chargeOverTwoRho, const double 
 
   // Evaluate the chi2/ndof
   MatrixReader * linearFitLongitudinal = &(linearFitLongitudinal_.find(combinationIndex_)->second);
-  double normChi2 = linearFitLongitudinal->normChi2(correctedVarsZ_)*linearFitLongitudinal->nDof();
+  ndofLongitudinal_ = linearFitLongitudinal->nDof();
+  chi2Longitudinal_ = linearFitLongitudinal->normChi2(correctedVarsZ_)*ndofLongitudinal_;
   MatrixReader * linearFitTransverse = nullptr;
   if (preEstimatedPt_ < ptSplitValue_) linearFitTransverse = &(linearFitLowPt_.find(combinationIndex_)->second);
   else linearFitTransverse = &(linearFitHighPt_.find(combinationIndex_)->second);
-  normChi2 += linearFitTransverse->normChi2(correctedVarsPhi_)*linearFitTransverse->nDof();
-  normChi2 /= linearFitLongitudinal->nDof()+linearFitTransverse->nDof();
+  ndofTransverse_ = linearFitTransverse->nDof();
+  chi2Transverse_ = linearFitTransverse->normChi2(correctedVarsPhi_)*ndofTransverse_;
 
   // Estimate the track parameters
   estimatedPars_.clear();
   estimatedPars_ = linearFitTransverse->trackParameters(correctedVarsPhi_);
-  // Parameter 1 must be phi0 for the rotation. Keep phi0 in the [-pi, pi] range.
-  if (estimatedPars_.size() > 1) {
-    estimatedPars_.at(1) += rotationFactor_;
-    if (estimatedPars_.at(1) > M_PI) estimatedPars_.at(1) -= 2*M_PI;
-    else if (estimatedPars_.at(1) < -M_PI) estimatedPars_.at(1) += 2*M_PI;
-  }
+  // Parameter 1 must be phi0 for the rotation.
+  if (estimatedPars_.size() > 1) estimatedPars_.at(1) += rotationFactor_;
   auto tempPars = linearFitLongitudinal->trackParameters(correctedVarsZ_);
   estimatedPars_.insert(estimatedPars_.end(), tempPars.begin(), tempPars.end());
 
-  return normChi2;
+  return (chi2Transverse_+chi2Longitudinal_)/(ndofTransverse_+ndofLongitudinal_);
 }
 
 
