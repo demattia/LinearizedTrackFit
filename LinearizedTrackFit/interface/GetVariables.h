@@ -324,6 +324,7 @@ class EstimatorSimple
     inputFile.open(inputFileName);
     if (!inputFile) {
       std::cout << "EstimatorSimple: Error opening " + inputFileName << std::endl;
+      throw;
       // throw std::runtime_error("EstimatorSimple: Error opening " + inputFileName);
     }
 

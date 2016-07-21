@@ -7,11 +7,13 @@ LinearizedTrackFitter::LinearizedTrackFitter(const std::string & baseDir, const 
                                              const std::string & preEstimateCotThetaDirName,
                                              const std::string & linearFitLowPtDirName,
                                              const std::string & linearFitHighPtDirName,
-                                             const std::string & linearFitLongitudinalDirName) :
+                                             const std::string & linearFitLongitudinalDirName,
+                                             const bool alignPrincipals) :
     LinearizedTrackFitterBase(baseDir, inputExtrapolateR, inputExtrapolatedRPrecision,
                               inputCorrectNonRadialStrips, regionsNumber,
                               preEstimatePtDirName, preEstimateCotThetaDirName,
-                              linearFitLowPtDirName, linearFitHighPtDirName, linearFitLongitudinalDirName),
+                              linearFitLowPtDirName, linearFitHighPtDirName, linearFitLongitudinalDirName,
+                              alignPrincipals),
     preEstimatedPt_(0.)
 {
   // Fill all pre-estimates
@@ -27,40 +29,16 @@ LinearizedTrackFitter::LinearizedTrackFitter(const std::string & baseDir, const 
 }
 
 
-/// This is used by the full simulation
 double LinearizedTrackFitter::fit(const std::vector<double> & vars, const int bits)
 {
+  std::vector<double> cleanedVars;
   std::vector<int> layers;
-  if (bits == 0) layers = {5, 6, 7, 8, 9, 10};
-  else if (bits == 1) layers = {6, 7, 8, 9, 10};
-  else if (bits == 2) layers = {5, 7, 8, 9, 10};
-  else if (bits == 3) layers = {5, 6, 8, 9, 10};
-  else if (bits == 4) layers = {5, 6, 7, 9, 10};
-  else if (bits == 5) layers = {5, 6, 7, 8, 10};
-  else if (bits == 6) layers = {5, 6, 7, 8, 9};
-  else {
-    std::cout << "Error: unknown bits = " << bits << std::endl;
-    throw;
-  }
-
-  // Clean the variables removing the 0 values corresponding to the missing layer
-  if (bits > 0) {
-    std::vector<double> cleanedVars;
-    for (size_t i = 0; i < vars.size() / 3; ++i) {
-      if (i != size_t(bits - 1)) {
-        cleanedVars.push_back(vars.at(i * 3));
-        cleanedVars.push_back(vars.at(i * 3 + 1));
-        cleanedVars.push_back(vars.at(i * 3 + 2));
-      }
-    }
-    return fit(cleanedVars, layers);
-  }
-
-  return fit(vars, layers);
+  fillVariablesFromBits(vars, bits, cleanedVars, layers);
+  return fit(cleanedVars, layers);
 }
 
 
-void LinearizedTrackFitter::initialize(const std::vector<double> & vars, const std::vector<int> & layers)
+double LinearizedTrackFitter::fit(const std::vector<double> & vars, const std::vector<int> & layers)
 {
 //  std::cout << "vars =" << std::endl;
 //  for (auto it : vars) std::cout << it << std::endl;
@@ -84,12 +62,6 @@ void LinearizedTrackFitter::initialize(const std::vector<double> & vars, const s
   std::sort(uniqueLayers_.begin(), uniqueLayers_.end());
   uniqueLayers_.erase(std::unique(uniqueLayers_.begin(), uniqueLayers_.end()), uniqueLayers_.end());
   combinationIndex_ = combinationIndex(uniqueLayers_, varsR_, regionsNumber_);
-}
-
-
-double LinearizedTrackFitter::fit(const std::vector<double> & vars, const std::vector<int> & layers)
-{
-  initialize(vars, layers);
 
   auto iterPt = chargeOverPtEstimator_.find(combinationIndex_);
   if (iterPt == chargeOverPtEstimator_.end()) {
@@ -128,6 +100,52 @@ double LinearizedTrackFitter::fit(const std::vector<double> & vars, const std::v
 
 double LinearizedTrackFitter::fit(const double & chargeOverTwoRho, const double & cotTheta, const double & tgTheta)
 {
+  // Extrapolate R if required
+  // Warning: do not put in the following loop or the correctedVarsZ will be modified for all the elements after the
+  // first one and the results will be incorrect.
+  if (extrapolateR_) {
+    firstOrderTerm_.clear();
+    secondOrderTerm1_.clear();
+    secondOrderTerm2_.clear();
+    secondOrderTerm3_.clear();
+
+    // Force first order R extrapolation
+    // extrapolatedRPrecision_ = 0;
+
+    for (unsigned int i=0; i<varsNum_; ++i) {
+      if (extrapolatedRPrecision_ == 0) {
+        extrapolatedR_[i] = extrapolateRFirstOrder(varsR_[i], correctedVarsZ_[i], uniqueLayers_[i], tgTheta,
+                                                   chargeOverTwoRho, uniqueLayers_, varsR_, correctedVarsZ_,
+                                                   firstOrderTerm_);
+      }
+      else if (extrapolatedRPrecision_ == 1) {
+        extrapolatedR_[i] = extrapolateRSecondOrderFirstTermOnly(varsR_[i], correctedVarsZ_[i], uniqueLayers_[i], tgTheta,
+                                                                 chargeOverTwoRho, uniqueLayers_, varsR_, correctedVarsZ_,
+                                                                 firstOrderTerm_, secondOrderTerm1_);
+      }
+      else if (extrapolatedRPrecision_ == 2) {
+        extrapolatedR_[i] = extrapolateRSecondOrderFirstTwoTermsOnly(varsR_[i], correctedVarsZ_[i], uniqueLayers_[i], tgTheta,
+                                                                     chargeOverTwoRho, uniqueLayers_, varsR_, correctedVarsZ_,
+                                                                     firstOrderTerm_, secondOrderTerm1_, secondOrderTerm2_);
+      }
+      else if (extrapolatedRPrecision_ == 3) {
+        extrapolatedR_[i] = extrapolateRSecondOrder(varsR_[i], correctedVarsZ_[i], uniqueLayers_[i], tgTheta,
+                                                    chargeOverTwoRho, uniqueLayers_, varsR_, correctedVarsZ_,
+                                                    firstOrderTerm_, secondOrderTerm1_, secondOrderTerm2_,
+                                                    secondOrderTerm3_);
+      }
+      else if (extrapolatedRPrecision_ == 4) {
+        extrapolatedR_[i] = extrapolateRExact(varsR_[i], correctedVarsZ_[i], uniqueLayers_[i], tgTheta,
+                                              chargeOverTwoRho, uniqueLayers_, varsR_, correctedVarsZ_);
+      }
+      if (correctNonRadialStrips_) {
+        // We correct for the rotation factor to allow for the lookup table to work properly.
+        correctedVarsPhi_[i] = correctPhiForNonRadialStripsLookup_.correctPhiForNonRadialStrips(correctedVarsPhi_[i]+rotationFactor_, 0.009, extrapolatedR_[i],
+                                                                                                varsR_[i], correctedVarsZ_[i], uniqueLayers_[i]) - rotationFactor_;
+      }
+    }
+  }
+
   for (unsigned int i=0; i<varsNum_; ++i) {
     double DeltaR = varsR_[i] - meanRadius_[combinationIndex_][i];
     double RCube = std::pow(varsR_[i], 3);
@@ -168,7 +186,11 @@ std::vector<double> LinearizedTrackFitter::principalComponents()
   if (preEstimatedPt_ < ptSplitValue_) linearFitTransverse = &(linearFitLowPt_.find(combinationIndex_)->second);
   else linearFitTransverse = &(linearFitHighPt_.find(combinationIndex_)->second);
   principalComponents_ = linearFitTransverse->principalComponents(correctedVarsPhi_);
-  auto tempPrincipalFromZ = linearFitLongitudinal_.find(combinationIndex_)->second.principalComponents(correctedVarsZ_);
+  if (alignPrincipals_) alignPrincipals(principalComponents_, linearFitTransverse->nDof());
+//  auto tempPrincipalFromZ = linearFitLongitudinal_.find(combinationIndex_)->second.principalComponents(correctedVarsZ_);
+  MatrixReader * linearFitLongitudinal = &(linearFitLongitudinal_.find(combinationIndex_)->second);
+  auto tempPrincipalFromZ = linearFitLongitudinal->principalComponents(correctedVarsZ_);
+  if (alignPrincipals_) alignPrincipals(tempPrincipalFromZ, linearFitLongitudinal->nDof());
   principalComponents_.insert(principalComponents_.end(), tempPrincipalFromZ.begin(), tempPrincipalFromZ.end());
   return principalComponents_;
 }
@@ -181,7 +203,11 @@ std::vector<double> LinearizedTrackFitter::normalizedPrincipalComponents()
   if (preEstimatedPt_ < ptSplitValue_) linearFitTransverse = &(linearFitLowPt_.find(combinationIndex_)->second);
   else linearFitTransverse = &(linearFitHighPt_.find(combinationIndex_)->second);
   normalizedPrincipalComponents_ = linearFitTransverse->normalizedPrincipalComponents(correctedVarsPhi_);
-  auto tempPrincipalFromZ = linearFitLongitudinal_.find(combinationIndex_)->second.normalizedPrincipalComponents(correctedVarsZ_);
+  if (alignPrincipals_) alignPrincipals(normalizedPrincipalComponents_, linearFitTransverse->nDof());
+//  auto tempPrincipalFromZ = linearFitLongitudinal_.find(combinationIndex_)->second.normalizedPrincipalComponents(correctedVarsZ_);
+  MatrixReader * linearFitLongitudinal = &(linearFitLongitudinal_.find(combinationIndex_)->second);
+  auto tempPrincipalFromZ = linearFitLongitudinal->normalizedPrincipalComponents(correctedVarsZ_);
+  if (alignPrincipals_) alignPrincipals(tempPrincipalFromZ, linearFitLongitudinal->nDof());
   normalizedPrincipalComponents_.insert(normalizedPrincipalComponents_.end(), tempPrincipalFromZ.begin(), tempPrincipalFromZ.end());
   return normalizedPrincipalComponents_;
 }

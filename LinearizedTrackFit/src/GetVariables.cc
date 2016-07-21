@@ -10,7 +10,10 @@
 double computeRotationFactor(const std::vector<double> & vars)
 {
   // Make it so that they are all between -0.4 and 0.4
-  if (vars.size() > 0) return int(vars.at(0)/0.4)*0.4;
+  // if (vars.size() > 0) return int(vars.at(0)/0.4)*0.4;
+  // Rotate all stubs so that the innermost is always within +/-pi/8 from 0.
+  double towerCenter = M_PI/8.;
+  if (vars.size() > 0) return int(vars.at(0)/(2*towerCenter))*2*towerCenter + towerCenter;
   return 0.;
 }
 

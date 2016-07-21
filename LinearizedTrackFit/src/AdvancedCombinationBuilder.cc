@@ -18,11 +18,13 @@ void AdvancedCombinationBuilder::initialize(const Road & road)
 {
   // Set the ranges for the counters to this combination
   totalCombinations_ = 1;
+  int emptyLayers = 0;
   size_t layer = 0;
   for (auto l = road.beginLayer(); l != road.endLayer(); ++l, ++layer) {
     int range = l->size();
     combUnits_.at(layer).setRange(range);
     totalCombinations_ *= range;
+    if (range == 0) ++emptyLayers;
   }
   // Count also all possible 5/6 without repetitions
   layer = 0;
@@ -34,7 +36,18 @@ void AdvancedCombinationBuilder::initialize(const Road & road)
     }
     totalCombinations_ += combs;
   }
-
+  // If there is more than one missing stub compute the combinations
+  // as in the simple combination builder
+  if (emptyLayers > 1) {
+    int combs = 1;
+    for (auto l = road.beginLayer(); l != road.endLayer(); ++l) {
+      if (l->size() > 0) {
+        combs *= l->size();
+      }
+    }
+    // We do equal since there are no 6/6 and 5/6 (or 5/5) combinations in this case
+    totalCombinations_ = combs;
+  }
   carryOver_ = std::vector<int>(7, 0);
   carryOver_[0] = 1;
 
