@@ -66,8 +66,8 @@ class LinearizedTrackFitterBase
                   const MaxDeltaAndFactors & maxDeltaAndFactors,
                   const double & scaleFactor, const double & ptSplitValue = 10.,
                   const std::vector<bool> & powerTwoRanges = {});
-  MaxDeltaAndFactors computeMaxDeltaAndFactor(std::unordered_map<unsigned long, MatrixReaderEmulator> * matricesLowPt,
-                                              std::unordered_map<unsigned long, MatrixReaderEmulator> * matricesHighPt);
+  MaxDeltaAndFactors computeMaxDeltaAndFactorLowHighPt(std::unordered_map<unsigned long, MatrixReaderEmulator> * matricesLowPt,
+                                                       std::unordered_map<unsigned long, MatrixReaderEmulator> * matricesHighPt);
   std::string buildFullFileName(const std::string & fileName, const std::string & baseDir, const unsigned long & index);
   void fillMatrices(const std::string & baseDirLowPt, const std::string & fileNameLowPt,
                     std::unordered_map<unsigned long, MatrixReaderEmulator> * matricesLowPt,
@@ -105,6 +105,12 @@ class LinearizedTrackFitterBase
   double rotationFactor_;
   bool alignPrincipals_;
 
+
+  MaxDeltaAndFactors computeMaxDeltaAndFactor(std::unordered_map<unsigned long, MatrixReaderEmulator> * matrices,
+                                              const bool excludeBarrelFromNormalizedMatrices) const;
+
+  MaxDeltaAndFactors computeMaxDeltaAndFactor(std::unordered_map<unsigned long, EstimatorSimpleEmulator> * matrices,
+                                              const bool excludeBarrelFromNormalizedMatrices) const;
 
   template <class T>
   MaxDeltaAndFactors computeMaxDeltaAndFactor(std::unordered_map<unsigned long, T> * matrices,
@@ -163,8 +169,8 @@ class LinearizedTrackFitterBase
       }
     }
 
-    bool writeMatrices = false;
-    if (writeMatrices) {
+    bool writeEncodedCoefficients = false;
+    if (writeEncodedCoefficients) {
       for (auto index : combinationIndexList) {
         try {
           matrices->find(index)->second.write();

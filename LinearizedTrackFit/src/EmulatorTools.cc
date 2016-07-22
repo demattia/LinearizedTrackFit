@@ -8,13 +8,13 @@
 bigInt encode(const double & x, const double & deltaX, const int bits)
 {
   if (x >= deltaX/2.) {
-    std::cout << "exceeding upper edge for x = " << x << " with upper edge = " << deltaX/2. << std::endl;
-//    throw;
+    std::cout << "exceeding upper edge for x = " << x << " with upper edge = " << deltaX / 2. << std::endl;
+    // throw;
     return ((bigInt(1)<<(bits-1))-1);
   }
   if (x < -deltaX/2.) {
     std::cout << "exceeding lower edge for x = " << x << " with lower edge = " << -deltaX/2. << std::endl;
-//    throw;
+    // throw;
     return -(bigInt(1)<<(bits-1));
   }
   double temp = x;

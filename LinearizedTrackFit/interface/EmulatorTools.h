@@ -229,8 +229,8 @@ class EstimatorSimpleEmulator : public EstimatorSimple
       encodeVector(coeff1, coeffInt1_, deltaA_, bitsA_);
       encodeVector(coeff2, coeffInt2_, deltaA_, bitsA_);
     }
-    bool writeCoefficients = false;
-    if (writeCoefficients) write();
+    bool writeEncodedCoefficients = false;
+    if (writeEncodedCoefficients) write();
   }
 
   int reduction() const { return reduction_; }

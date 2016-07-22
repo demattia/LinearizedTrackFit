@@ -34,7 +34,7 @@ class LinearizedTrackFitterEmulator: public LinearizedTrackFitterBase
                                 const int reducedAccuracyBitsPhi = 18,
                                 const int reducedAccuracyBitsR = 18,
                                 const int reducedAccuracyBitsZ = 18,
-                                const int reducedAccuracyBitsStripIndex = 0,
+                                const int reducedAccuracyBitsStripIndex = 3,
                                 const bool normalizeMatrices = true,
                                 const bool commonLowHighPtFix = true,
                                 const bool powerTwoRangeChargeOverPt = false,

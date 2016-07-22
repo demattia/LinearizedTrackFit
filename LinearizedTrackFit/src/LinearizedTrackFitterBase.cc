@@ -116,7 +116,6 @@ void LinearizedTrackFitterBase::fillMatrix(std::unordered_map<unsigned long, Mat
 }
 
 
-template <>
 MaxDeltaAndFactors LinearizedTrackFitterBase::computeMaxDeltaAndFactor(std::unordered_map<unsigned long, MatrixReaderEmulator> * matrices,
                                                                        const bool excludeBarrelFromNormalizedMatrices) const
 {
@@ -170,7 +169,6 @@ MaxDeltaAndFactors LinearizedTrackFitterBase::computeMaxDeltaAndFactor(std::unor
 }
 
 
-template <>
 MaxDeltaAndFactors LinearizedTrackFitterBase::computeMaxDeltaAndFactor(std::unordered_map<unsigned long, EstimatorSimpleEmulator> * matrices,
                                                                        const bool excludeBarrelFromNormalizedMatrices) const
 {
@@ -201,8 +199,8 @@ MaxDeltaAndFactors LinearizedTrackFitterBase::computeMaxDeltaAndFactor(std::unor
 }
 
 
-MaxDeltaAndFactors LinearizedTrackFitterBase::computeMaxDeltaAndFactor(std::unordered_map<unsigned long, MatrixReaderEmulator> * matricesLowPt,
-                                                                       std::unordered_map<unsigned long, MatrixReaderEmulator> * matricesHighPt)
+MaxDeltaAndFactors LinearizedTrackFitterBase::computeMaxDeltaAndFactorLowHighPt(std::unordered_map<unsigned long, MatrixReaderEmulator> * matricesLowPt,
+                                                                                std::unordered_map<unsigned long, MatrixReaderEmulator> * matricesHighPt)
 {
   MaxDeltaAndFactors maxDeltaAndFactorsLowPt(computeMaxDeltaAndFactor(matricesLowPt, false));
   MaxDeltaAndFactors maxDeltaAndFactorsHighPt(computeMaxDeltaAndFactor(matricesHighPt, false));
@@ -287,7 +285,7 @@ void LinearizedTrackFitterBase::fillMatrices(const std::string & baseDirLowPt, c
   // Normalize matrices so that each row is encoded with the same range (it can be different for different rows)
   // Make it so that low and high pT coefficients are normalized consistently since they will use the same slices
   // in the firmware.
-  MaxDeltaAndFactors maxDeltaAndFactors(computeMaxDeltaAndFactor(matricesLowPt, matricesHighPt));
+  MaxDeltaAndFactors maxDeltaAndFactors(computeMaxDeltaAndFactorLowHighPt(matricesLowPt, matricesHighPt));
   matricesLowPt->clear();
   matricesHighPt->clear();
   for (auto index : combinationIndexList) {
@@ -305,8 +303,8 @@ void LinearizedTrackFitterBase::fillMatrices(const std::string & baseDirLowPt, c
     }
   }
 
-  bool writeMatrices = false;
-  if (writeMatrices) {
+  bool writeEncodedCoefficients = false;
+  if (writeEncodedCoefficients) {
     for (auto index : combinationIndexList) {
       try {
         matricesLowPt->find(index)->second.write();
