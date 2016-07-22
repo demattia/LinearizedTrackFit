@@ -41,10 +41,10 @@ inline void setLayerRadiusBits(const int layer, const double & radius, T & bits,
     }
     // Split the 2S modules part of the disks
     else if (regionsNumber == 14 &&
-        (((layer == 11 || layer == 12) && radius < 82.5) ||
-        ((layer == 13) && radius < 82.5) ||
-        ((layer == 14) && radius < 77.) ||
-        ((layer == 15) && radius < 77.))) {
+             (((layer == 11 || layer == 12) && radius < 82.5) ||
+              ((layer == 13) && radius < 82.5) ||
+              ((layer == 14) && radius < 77.) ||
+              ((layer == 15) && radius < 77.))) {
       bits.set(layer + 10, 1);
     }
 //    else if (((layer == 11 || layer == 12) && radius < 82.5) ||
@@ -82,6 +82,9 @@ double radiusRange(const int layer, const double & radius, const int regionsNumb
 
 double radiusRange(const int layer, const bigInt & radius, const int regionsNumber,
                    const bigInt & radiusCut, const bigInt & radiusCut1, const bigInt & radiusCut2);
+
+
+bool combIndexIsBarrel(const int combIndex);
 
 
 #endif //REMOTEPROJECTS_COMBINATIONINDEX_H

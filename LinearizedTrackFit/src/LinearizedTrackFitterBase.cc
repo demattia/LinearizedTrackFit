@@ -182,8 +182,7 @@ MaxDeltaAndFactors LinearizedTrackFitterBase::computeMaxDeltaAndFactor(std::unor
     unsigned long combIndex = it->first;
     // Exclude the barrel if requested. This is useful to avoid the barrel coefficients for the pre-estimate of
     // tgTheta to affect the range of the coefficients for the forward. The pre-tgTheta is not used in the barrel.
-    if (excludeBarrelFromNormalizedMatrices && (combIndex == 2016 || combIndex == 1504 || combIndex == 1760 ||
-                                                combIndex == 1888 || combIndex == 1952 || combIndex == 1984 || combIndex == 992)) {
+    if (excludeBarrelFromNormalizedMatrices && combIndexIsBarrel(combIndex)) {
       continue;
     }
 

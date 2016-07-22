@@ -89,3 +89,10 @@ double radiusRange(const int layer, const bigInt & radius, const int regionsNumb
   }
   return 0.;
 }
+
+
+bool combIndexIsBarrel(const int combIndex)
+{
+  return (combIndex == 2016 || combIndex == 1504 || combIndex == 1760 ||
+          combIndex == 1888 || combIndex == 1952 || combIndex == 1984 || combIndex == 992);
+}
