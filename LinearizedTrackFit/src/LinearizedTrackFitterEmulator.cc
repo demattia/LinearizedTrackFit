@@ -40,10 +40,13 @@ LinearizedTrackFitterEmulator::LinearizedTrackFitterEmulator(const std::string &
     reducedAccuracyBitsStripIndex_(reducedAccuracyBitsStripIndex),
     // varOut_("var_out.txt", std::ios_base::app | std::ios_base::out),
     preChargeOverTwoRho_(0),
-    saveOutput_(saveOutput),
-    varOut_("var_out.txt", std::ios_base::out),
-    emulatorOutput_("emulator_output.txt", std::ios_base::out)
+    saveOutput_(saveOutput)
 {
+  if (saveOutput_) {
+    varOut_ .open("var_out.txt", std::ios_base::out);
+    emulatorOutput_.open("emulator_output.txt", std::ios_base::out);
+  }
+
   shiftBitsPhi_ = computeShiftBits(bitsX, reducedAccuracyBitsPhi);
   shiftBitsR_ = computeShiftBits(bitsX, reducedAccuracyBitsR);
   shiftBitsZ_ = computeShiftBits(bitsX, reducedAccuracyBitsZ);
