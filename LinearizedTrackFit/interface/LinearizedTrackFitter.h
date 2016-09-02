@@ -37,6 +37,8 @@ class LinearizedTrackFitter : public LinearizedTrackFitterBase
   std::vector<double> getSecondOrderTerm2() { return secondOrderTerm2_; }
   std::vector<double> getSecondOrderTerm3() { return secondOrderTerm3_; }
 
+  double preEstimatedPt() const { return preEstimatedPt_; }
+
  protected:
   virtual double fit(const double & chargeOverTwoRho, const double & cotTheta, const double & tgTheta);
 

@@ -20,9 +20,9 @@ def main(argv):
     for line in range(len(emulator_lines)):
         if firmware_lines[line] != emulator_lines[line]:
             print "Found a difference at line "+str(total_tracks)+":"
-            print emulator_lines
-            print firmware_lines
-            break
+            print "emulator =", emulator_lines[line]
+            print "firmware =", firmware_lines[line]
+            return -1
         total_tracks += 1
 
     print
