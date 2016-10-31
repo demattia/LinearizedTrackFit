@@ -127,6 +127,11 @@ double LinearizedTrackFitterEmulator::fit(const std::vector<double> & vars, cons
 
   for (unsigned int i=0; i<varsNum_; ++i) {
     bigInt tempVarPhiInt = encode(vars[i*3]-rotationFactor_, deltaPhi_, bitsX_);
+
+    // Rotate phi accounting for the discontinuity at +/-pi. See LinearizedTrackFitter.cc for more details.
+    if (rotationFactor_ < -1.2 && vars[i*3] > 0.) tempVarPhiInt = encode(vars[i*3]-2*M_PI - rotationFactor_, deltaPhi_, bitsX_);
+    else if (rotationFactor_ > 1.2 && vars[i*3] < 0.) tempVarPhiInt = encode(vars[i*3]+2*M_PI - rotationFactor_, deltaPhi_, bitsX_);
+
     if (shiftBitsPhi_ != 0) {
       truncate(tempVarPhiInt, shiftBitsPhi_);
       alignBits(tempVarPhiInt, -shiftBitsPhi_);

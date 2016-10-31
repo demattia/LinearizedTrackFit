@@ -53,7 +53,19 @@ double LinearizedTrackFitter::fit(const std::vector<double> & vars, const std::v
   // Compute the phi alignment value
   rotationFactor_ = computeRotationFactor(vars);
 
-  for (unsigned int i=0; i<varsNum_; ++i) { correctedVarsPhi_(i) = vars[i*3] - rotationFactor_; }
+  // Rotate phi accounting for the discontinuity at +/-pi.
+  // The rotation factor is computed for the innermost stub. If any of the outer stubs goes across the +/-pi edge it
+  // appears as a discontinuity. Given the size of a tower it cannot happen that the innermost stub is above/below
+  // +/-pi/2 (rotation factor of at least +/-1.2) and any other stub has opposite sign below the 0 since they cannot be
+  // together in the same trigger tower. If rotationFactor < -1.2 then the only possible change of sign within a tower
+  // is for a stub to be across the -pi border (becomes positive sign) and for rotationFactor > 1.2 the only possible
+  // change of sign is for a stub across the +pi border (becomes negative sign). Therefore, we rotate those cases by
+  // 2pi to make all the stubs have consistent sign and avoid the discontinuity.
+  for (unsigned int i=0; i<varsNum_; ++i) {
+    if (rotationFactor_ < -1.2 && vars[i*3] > 0.) correctedVarsPhi_(i) = vars[i*3]-2*M_PI - rotationFactor_;
+    else if (rotationFactor_ > 1.2 && vars[i*3] < 0.) correctedVarsPhi_(i) = vars[i*3]+2*M_PI - rotationFactor_;
+    else correctedVarsPhi_(i) = vars[i*3] - rotationFactor_;
+  }
   for (unsigned int i=0; i<varsNum_; ++i) { varsR_.push_back(vars[i*3+1]); }
   for (unsigned int i=0; i<varsNum_; ++i) { correctedVarsZ_(i) = vars[i*3+2]; }
   extrapolatedR_ = varsR_;
